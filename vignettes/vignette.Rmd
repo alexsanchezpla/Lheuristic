@@ -25,28 +25,28 @@ This vignette provides some examples on how to use the `LHeuristic` package func
 
 Essentially what a user may want to do using this package is:
 
--   Data input
+- Data input
 
-    -   Select (Load) expression values from a csv file
+  -  Select (Load) expression values from a csv file
 
-    -   Select (Load) methylation values from a csv file
+  -  Select (Load) methylation values from a csv file
 
-    -   Data preprocessing may need to be done automatically so that its results can be used for filtering.
+-   Data preprocessing may need to be done automatically so that its results can be used for filtering.
 
-    -   Set parameter values
+  -   Set parameter values
 
-        -   For data use (all genes or only those that pass certain filters ($\mbox{corr}< 0$))
-        -   For L-shape selection method: Here one may want to select the method and its parameters (each method has a different set of parameters)
+      -   For data use (all genes or only those that pass certain filters ($\mbox{corr}< 0$))
+      -   For L-shape selection method: Here one may want to select the method and its parameters (each method has a different set of parameters)
 
 -   Data processing (For each method and set of parameters ...)
 
-    -   Run the computation and "mark" L-shape genes
-    -   Draw the scatterplots of either all genes or only selected genes
+  -   Run the computation and "mark" L-shape genes
+  -   Draw the scatterplots of either all genes or only selected genes
 
 -   Data output (For each method and set of parameters ...)
 
-    -   Save (Download) the resulting gene list(s)
-    -   Save (Download) the scatterplots
+  -   Save (Download) the resulting gene list(s)
+  -   Save (Download) the scatterplots
 
 # Input data
 
@@ -71,6 +71,16 @@ dim(TCGAexp)
 ifelse(checkPairing(TCGAexp, TCGAmet), "Match OK", "Check matching")
 ```
 
+## Using `MultiAssayExperiment` as data container
+
+We have two aligned datasets, so it seems reasonable to manage them using an appropriate data structure such as `MultiAssayExperiment` as described  [this tutorial](https://www.bioconductor.org/packages/devel/bioc/vignettes/MultiAssayExperiment/inst/doc/MultiAssayExperiment.html).
+
+```{r}
+library(MultiAssayExperiment)
+doubleExp <- list("Exprs"  = TCGAexp, "Metil" = TCGAmet)
+mae1 <- MultiAssayExperiment(experiments=doubleExp)
+```
+
 # Data analysis
 
 The Lheuristic package has been created to implement the heuristic algorithm developed by Sanchez et alt. (2019) to detect L-shaped scatterplots. However many researchers are used to rely on negative correlation to call a gene "regulated by methylation", so for completeness, both methods are available in the package.
@@ -84,7 +94,7 @@ The functions allow for parameter tuning, in which case, other forms of correlat
 The _correlation method_ is a naive approach consisting of calling those genes showing a significant negative correlation between their expression and methylation values.
 
 ```{r}
-correlation <- correlationSelection (TCGAexp, TCGAmet, pValCutoff=0.25,  rCutoff=-0.5, type="Spearman",adj=TRUE)
+correlation <- correlationSelection (mae1[[1]],mae1[[2]], pValCutoff=0.25,  rCutoff=-0.5, type="Spearman",adj=TRUE)
 correlationL <-correlation[correlation$SigNegCorr,] 
 correlationNoL <-correlation[!correlation$SigNegCorr,] 
 
@@ -108,10 +118,10 @@ head(correlationL)
 The resulting genes can also be plotted and saved in a PDF file (leaving the file name empty shows the plot in screen). The figure below shows a picture of the first four selected genes.
 
 ```{r, fig.height=6, fig.width=6}
-genes2plot <- rownames(TCGAmet) %in% rownames(correlationL)[1:4]
+genes2plot <- rownames(mae1[[2]]) %in% rownames(correlationL)[1:4]
 opt <- par(mfrow=c(2,2))
-plotGenesMat (mets=TCGAmet[genes2plot,1:4], 
-               expres=TCGAexp[genes2plot,1:4], 
+plotGenesMat (mets=mae1[[2]][genes2plot,1:4], 
+               expres=mae1[[1]][genes2plot,1:4], 
                fileName = NULL, #"correlationLgenes.pdf",
                text4Title = correlationL[rownames(correlationL),""]) 
 par(opt)
@@ -168,8 +178,8 @@ $$ where
 
 
 ```{r}
-sampleSize <- dim(TCGAmet)[2]
-numGenes <-   dim(TCGAmet)[1]
+sampleSize <- dim(mae1[[2]])[2]
+numGenes <-   dim(mae1[[2]])[1]
 
 # 
 reqPercentages <- matrix (c(2, 20, 5, 5, 40, 20, 3, 3, 2), nrow=3, byrow=TRUE)
@@ -179,8 +189,8 @@ sum(reqPercentages)
 (theWeightMifL=matrix (c(2,-2,-sampleSize/5,1,0,-2,1,1,2), nrow=3, byrow=TRUE))
 (theWeightMifNonL=matrix (c(0,-2,-sampleSize/5,0,0,-2,0,0,0), nrow=3, byrow=TRUE))
    
-heur <- scoreGenesMat (mets=TCGAmet,
-							              expres=TCGAexp,
+heur <- scoreGenesMat (mets=mae1[[2]],
+							         expres=mae1[[1]],
                             aReqPercentsMat=reqPercentages,
                             aWeightMifL=theWeightMifL,
                             aWeightMifNonL=theWeightMifNonL )
@@ -200,10 +210,10 @@ knitr::kable(heurL)
 Next, we can visualize the scatterplots of the selected genes or save them on a PDF file.
 
 ```{r, fig.height=6, fig.width=6}
-genes2plot2 <- rownames(TCGAmet) %in% rownames(heurL)[1:4]
+genes2plot2 <- rownames(mae1[[2]]) %in% rownames(heurL)[1:4]
 opt <- par(mfrow=c(2,2))
-plotGenesMat (mets=TCGAmet[genes2plot2,], 
-               expres=TCGAexp[genes2plot2,], 
+plotGenesMat (mets=mae1[[2]][genes2plot2,], 
+               expres=mae1[[1]][genes2plot2,], 
                fileName =NULL, # "selectedGenes.pdf",
                text4Title = heurL[genes2plot2,"numeriSc"]) 
 par(opt)
@@ -246,27 +256,27 @@ As an example we will plot the genes 1, 2, 3 and 5 by index.
 ```{r, fig.height=6, fig.width=6}
 par(mfrow=c(2,2))
 myGene1 <-inCommonL[1]
-xVec<- as.numeric(TCGAmet[myGene1,])
-yVec<-as.numeric(TCGAexp[myGene1,])
+xVec<- as.numeric(mae1[[2]][myGene1,])
+yVec<-as.numeric(mae1[[1]][myGene1,])
 titleT <- paste (myGene1, "(May be GRM)")
 plotGeneSel(xMet=xVec, yExp=yVec, titleText=titleT, x1=1/3, x2=2/3)
 
 myGene2 <-inCommonL[2]
-xVec<- as.numeric(TCGAmet[myGene2,])
-yVec<-as.numeric(TCGAexp[myGene2,])
+xVec<- as.numeric(mae1[[2]][myGene2,])
+yVec<-as.numeric(mae1[[1]][myGene2,])
 titleT <- paste (myGene2, "(May be GRM)")
 plotGeneSel(xMet=xVec, yExp=yVec, titleText=titleT, x1=1/3, x2=2/3)
 
 
 myGene3 <-inCommonL[3]
-xVec<- as.numeric(TCGAmet[myGene3,])
-yVec<-as.numeric(TCGAexp[myGene3,])
+xVec<- as.numeric(mae1[[2]][myGene3,])
+yVec<-as.numeric(mae1[[1]][myGene3,])
 titleT <- paste (myGene3, "(May be GRM)")
 plotGeneSel(xMet=xVec, yExp=yVec, titleText=titleT, x1=1/3, x2=2/3)
 
 myGene5 <-inCommonL[5]
-xVec<- as.numeric(TCGAmet[myGene3,])
-yVec<-as.numeric(TCGAexp[myGene3,])
+xVec<- as.numeric(mae1[[2]][myGene3,])
+yVec<-as.numeric(mae1[[1]][myGene3,])
 titleT <- paste (myGene3, "(May be GRM)")
 plotGeneSel(xMet=xVec, yExp=yVec, titleText=titleT, x1=1/3, x2=2/3)
 ```
