@@ -68,7 +68,8 @@ The package contains some utility functions such as `checkPairing` that can be u
 
 ```{r}
 dim(TCGAexp)
-ifelse(checkPairing(TCGAexp, TCGAmet), "Match OK", "Check matching")
+ifelse(checkPairing(TCGAexp, TCGAmet), 
+       "Match OK", "Check matching")
 ```
 
 ## Using `MultiAssayExperiment` as data container
@@ -77,7 +78,8 @@ We have two aligned datasets, so it seems reasonable to manage them using an app
 
 ```{r}
 library(MultiAssayExperiment)
-doubleExp <- list("Exprs"  = TCGAexp, "Metil" = TCGAmet)
+doubleExp <- list("Exprs"  = TCGAexp, 
+                  "Metil" = TCGAmet)
 mae1 <- MultiAssayExperiment(experiments=doubleExp)
 ```
 
@@ -94,7 +96,8 @@ The functions allow for parameter tuning, in which case, other forms of correlat
 The _correlation method_ is a naive approach consisting of calling those genes showing a significant negative correlation between their expression and methylation values.
 
 ```{r}
-correlation <- correlationSelection (mae1[[1]],mae1[[2]], pValCutoff=0.25,  rCutoff=-0.5, type="Spearman",adj=TRUE)
+correlation <- correlationSelection (mae1[[1]],mae1[[2]], pValCutoff=0.25,  
+                                     rCutoff=-0.5, type="Spearman",adj=TRUE)
 correlationL <-correlation[correlation$SigNegCorr,] 
 correlationNoL <-correlation[!correlation$SigNegCorr,] 
 
@@ -104,7 +107,8 @@ message("The number of genes selected with the correlation method is: ", sum(cor
 We can observe the distribution of the correlation coefficients:
 
 ```{r,fig.width = 6, fig.height=4}
-plot(density(correlationL[,1]) , main="Significant correlations in TCGA dataset")
+plot(density(correlationL[,1]) , 
+     main="Significant correlations in TCGA dataset")
 ```
 
 Depending on the *p value* and the *r* cutoff more or less genes will be retained.
@@ -121,9 +125,9 @@ The resulting genes can also be plotted and saved in a PDF file (leaving the fil
 genes2plot <- rownames(mae1[[2]]) %in% rownames(correlationL)[1:4]
 opt <- par(mfrow=c(2,2))
 plotGenesMat (mets=mae1[[2]][genes2plot,1:4], 
-               expres=mae1[[1]][genes2plot,1:4], 
-               fileName = NULL, #"correlationLgenes.pdf",
-               text4Title = correlationL[rownames(correlationL),""]) 
+             expres=mae1[[1]][genes2plot,1:4], 
+             fileName = NULL, #"correlationLgenes.pdf",
+             text4Title = correlationL[rownames(correlationL),""]) 
 par(opt)
 ```
 

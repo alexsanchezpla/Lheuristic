@@ -5,7 +5,7 @@
 #'
 #' @param geneName name of the gene to be plotted.
 #' @param mets matrix containing the methylation data of the named gene.
-#' @param expresmatrix containing the expression data of the named gene.
+#' @param expres matrix containing the expression data of the named gene.
 #' @param filename NULL, name of the file to store the results as pdf if a name is passed.
 #' @param text4Title String to be used as main title for the plot. If NULL it is set to geneName
 #' @param plotGrid boolean parameter to be passed to `plotGeneSel` function
